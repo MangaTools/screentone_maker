@@ -11,6 +11,7 @@ func (pm PixelMatrix) Get(x, y int) byte {
 	return pm[x][y]
 }
 
+// SetOffset change values of all matrix values by variable. Result values clipped to [128;255]
 func (pm *PixelMatrix) SetOffset(value int8) {
 	size := len(*pm)
 
@@ -27,6 +28,7 @@ func NewPixelMatrix(size int) PixelMatrix {
 	return dotMatrixEqualDistribution(generateDotMatrix(size, centerValue, maxPixelValue), centerValue, maxPixelValue)
 }
 
+// generateDotMatrix generates matrix with values that are represents how far it is from center of the circle.
 func generateDotMatrix(size int, min, max byte) [][]byte {
 	centralValue := float64(size-1) / 2
 	centerPoint := FPoint{X: centralValue + .1, Y: centralValue + .2}
@@ -42,6 +44,8 @@ func generateDotMatrix(size int, min, max byte) [][]byte {
 	return result
 }
 
+// dotMatrixEqualDistribution sets values in matrix one by one by step.
+// All matrix values ordered and set values by min+step*i. step = (max-min)/(len(matrix)*len(matrix)).
 func dotMatrixEqualDistribution(matrix [][]byte, min, max byte) [][]byte {
 	matrixSize := len(matrix)
 
@@ -81,38 +85,7 @@ func dotMatrixEqualDistribution(matrix [][]byte, min, max byte) [][]byte {
 	return matrix
 }
 
-// func lerpDotMatrix(matrix [][]byte) [][]byte {
-// 	var min byte = 255
-// 	var max byte = 0
-
-// 	matrixSize := len(matrix)
-
-// 	for x := 0; x < matrixSize; x++ {
-// 		for y := 0; y < matrixSize; y++ {
-// 			value := matrix[x][y]
-// 			if value > max {
-// 				max = value
-// 			}
-// 			if value < min {
-// 				min = value
-// 			}
-// 		}
-// 	}
-
-// 	max = max - min
-
-// 	for x := 0; x < matrixSize; x++ {
-// 		for y := 0; y < matrixSize; y++ {
-// 			t := float64((matrix[x][y] - min)) / float64(max)
-
-// 			newValue := byte(math.Round(lerp(centerValue, maxPixelValue, t)))
-// 			matrix[x][y] = newValue
-// 		}
-// 	}
-
-// 	return matrix
-// }
-
+// getDotPixelLevel calculate how far pixel from center point.
 func getDotPixelLevel(size int, point FPoint, pixelX, pixelY int, min, max byte) byte {
 	distance := point.Distance(float64(pixelX), float64(pixelY))
 	circleRadius := getMaxDistance(point, size)
@@ -124,6 +97,7 @@ func getDotPixelLevel(size int, point FPoint, pixelX, pixelY int, min, max byte)
 	return byte(math.Round(byteFloat))
 }
 
+// getMaxDistance calculates farthes distance between center of point and square verticies.
 func getMaxDistance(point FPoint, size int) float64 {
 	max := float64(0)
 
