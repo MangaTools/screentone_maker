@@ -28,6 +28,5 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
-        goversion: latest
         asset_name: "screentone_maker_${{ matrix.goos }}_${{ matrix.goarch }}"
         release_tag: ${{ github.ref_name }}
