@@ -5,7 +5,7 @@ import (
 	"sort"
 )
 
-func bayerDitherMatrix(clusterSize int) [][]int8 {
+func bayerOrderMatrix(clusterSize int) [][]uint {
 	current := bayer2x2
 	for clusterSize > len(current) {
 		current = expandBayerDitherMatrix(current)
@@ -13,18 +13,12 @@ func bayerDitherMatrix(clusterSize int) [][]int8 {
 
 	result := orderMatrix(current)
 
-	for x := 0; x < len(result); x++ {
-		for y := 0; y < len(result); y++ {
-			result[x][y] = result[x][y] % (int8(clusterSize) / 2)
-		}
-	}
-
 	return result
 }
 
 // use bayer values to count from smallest to biggest
-func orderMatrix(matrix [][]float64) [][]int8 {
-	result := create2DMatrix[int8](len(matrix))
+func orderMatrix(matrix [][]float64) [][]uint {
+	result := create2DMatrix[uint](len(matrix))
 
 	elements := len(matrix) * len(matrix)
 
@@ -51,7 +45,7 @@ func orderMatrix(matrix [][]float64) [][]int8 {
 		return values[i].value < values[j].value
 	})
 
-	startValue := int8(-elements / 2)
+	startValue := uint(0)
 
 	for i := 0; i < len(values); i++ {
 		result[values[i].x][values[i].y] = startValue

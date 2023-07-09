@@ -11,7 +11,7 @@ func NewDot(size int, isAnti bool) *Dot {
 	matrix := NewPixelMatrix(size)
 	if isAnti {
 		matrix.Change(func(previous byte, x, y int) byte {
-			return byte(math.Max(float64(maxPixelValue-previous), 1))
+			return byte(math.Max(float64(maxPixelValue-previous) , 1))
 		})
 	}
 	return &Dot{
