@@ -1,7 +1,8 @@
 on:
   release:
-    types: [created]
+    types: [published]
 
+name: fill release with assets
 permissions:
     contents: write
     packages: write
