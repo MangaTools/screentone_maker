@@ -7,16 +7,18 @@ type DotCluster struct {
 	offsetMatrix [][]int8
 }
 
-func NewDotCluster(clusterSize int, dotSize int) *DotCluster {
+func NewDotCluster(clusterSize int, dotSize int, useDotCluster bool) *DotCluster {
 	dots := create2DMatrix[Dot](clusterSize)
 
 	offsetMatrix := bayerDitherMatrix(clusterSize)
 
 	for x := 0; x < clusterSize; x++ {
 		for y := 0; y < clusterSize; y++ {
-			dots[x][y] = *NewDot(dotSize)
+			dots[x][y] = *NewDot(dotSize, (x+y)%2 != 0)
 			// Use offset to change dot actuation point in different places
-			dots[x][y].PixelThresholdPoints.SetOffset(offsetMatrix[x][y])
+			if useDotCluster {
+				dots[x][y].PixelThresholdPoints.SetOffset(offsetMatrix[x][y])
+			}
 		}
 	}
 
@@ -39,7 +41,5 @@ func (d *DotCluster) IsPixelBlack(x, y int, color byte) bool {
 	dotIndexX := clusterPixelX / d.dotSize
 	dotIndexY := clusterPixelY / d.dotSize
 
-	isDotAnti := (dotIndexX+dotIndexY)%2 == 0
-
-	return d.dots[dotIndexX][dotIndexY].IsPixelBlack(dotPixelX, dotPixelY, color, isDotAnti)
+	return d.dots[dotIndexX][dotIndexY].IsPixelBlack(dotPixelX, dotPixelY, color)
 }

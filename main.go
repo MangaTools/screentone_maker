@@ -25,15 +25,17 @@ var acceptedImageExtensions = map[string]bool{
 }
 
 var (
-	dotSize     = 5
-	clusterSize = 6
-	folderPath  = ""
-	outFolder   = ""
+	dotSize          = 5
+	clusterSize      = 6
+	useClusterOffset = false
+	folderPath       = ""
+	outFolder        = ""
 )
 
 func init() {
 	flag.IntVarP(&dotSize, "dot_size", "d", 5, "max dot size in pixels")
 	flag.IntVarP(&clusterSize, "cluster_size", "c", 6, "max dots in one cluster(matrix size)")
+	flag.BoolVarP(&useClusterOffset, "cluster_offset", "r", false, "should randomize cluster dots matrix values")
 	flag.StringVarP(&folderPath, "input_folder", "i", "", "path to folder with images to use")
 	flag.StringVarP(&outFolder, "out_folder", "o", "", "path to folder with result images")
 
@@ -45,7 +47,7 @@ func main() {
 		log.Fatal("use -f 'folder path' to use program")
 	}
 
-	cluster := algo.NewDotCluster(clusterSize, dotSize)
+	cluster := algo.NewDotCluster(clusterSize, dotSize, useClusterOffset)
 	imagePaths := getImagesPaths(folderPath)
 
 	err := os.MkdirAll(outFolder, 0o755)
