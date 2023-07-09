@@ -27,5 +27,7 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
+        md5sum: TRUE
+        compress_assets: FALSE
         goarch: ${{ matrix.goarch }}
         asset_name: "screentone_maker_${{ matrix.goos }}_${{ matrix.goarch }}"
