@@ -1,8 +1,8 @@
 on:
   release:
-    types: [published]
+    types: [created]
 
-name: fill release with assets
+name: Build And Publish Assets On Release
 permissions:
     contents: write
     packages: write
