@@ -1,7 +1,6 @@
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  release:
+    types: [created]
 
 permissions:
     contents: write
@@ -29,4 +28,3 @@ jobs:
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
         asset_name: "screentone_maker_${{ matrix.goos }}_${{ matrix.goarch }}"
-        release_tag: ${{ github.ref_name }}
