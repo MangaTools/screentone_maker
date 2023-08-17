@@ -6,11 +6,11 @@ type Dot struct {
 }
 
 func NewDot(size int, inverted bool, globalMin, globalMax byte) *Dot {
-	currentMin := max(globalMin, centerValue)
+	currentMin := max(globalMin, (globalMax-globalMin)/2+1)
 	currentMax := min(globalMax, maxPixelValue)
 	if inverted {
 		currentMin = max(globalMin, 0)
-		currentMax = min(globalMax, centerValue-1)
+		currentMax = min(globalMax, (globalMax-globalMin)/2)
 	}
 
 	matrix := NewDotPixelMatrix(size, inverted, currentMin, currentMax)
