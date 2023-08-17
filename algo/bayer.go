@@ -5,51 +5,28 @@ import (
 	"sort"
 )
 
-func bayerOrderMatrix(clusterSize int) [][]uint {
+func bayerOrderMatrix(clusterSize int) Matrix[uint] {
 	current := bayer2x2
 	for clusterSize > len(current) {
 		current = expandBayerDitherMatrix(current)
 	}
 
-	result := orderMatrix(current)
-
-	return result
+	return orderMatrix(current)
 }
 
 // use bayer values to count from smallest to biggest
-func orderMatrix(matrix [][]float64) [][]uint {
-	result := create2DMatrix[uint](len(matrix))
-
-	elements := len(matrix) * len(matrix)
-
-	values := make([]struct {
-		x, y  int
-		value float64
-	}, 0, elements)
-
-	for x := 0; x < len(matrix); x++ {
-		for y := 0; y < len(matrix); y++ {
-			values = append(values, struct {
-				x     int
-				y     int
-				value float64
-			}{
-				x:     x,
-				y:     y,
-				value: matrix[x][y],
-			})
-		}
-	}
-
-	sort.Slice(values, func(i, j int) bool {
-		return values[i].value < values[j].value
+func orderMatrix(matrix [][]float64) Matrix[uint] {
+	points := toPoint2DValueArray[float64](matrix)
+	sort.Slice(points, func(i, j int) bool {
+		return points[i].Value < points[j].Value
 	})
 
-	startValue := uint(0)
+	result := newEmptyPixelMatrix[uint](len(matrix))
 
-	for i := 0; i < len(values); i++ {
-		result[values[i].x][values[i].y] = startValue
-		startValue++
+	value := uint(0)
+	for _, point := range points {
+		result.Set(point.X, point.Y, value)
+		value++
 	}
 
 	return result

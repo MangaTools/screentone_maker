@@ -33,7 +33,7 @@ func TestEqualDistribution(t *testing.T) {
 		t.Run(testCase.Name, func(t *testing.T) {
 			maxValue := byte(testCase.Size * testCase.Size)
 
-			values := dotMatrixEqualDistribution(generateDotMatrix(testCase.Size), 0, maxValue-1)
+			values := NewDotPixelMatrix(testCase.Size, false, 0, maxValue-1)
 
 			expectedValues := make(map[byte]struct{})
 			for i := byte(0); i < maxValue; i++ {
@@ -42,7 +42,7 @@ func TestEqualDistribution(t *testing.T) {
 
 			for x := 0; x < testCase.Size; x++ {
 				for y := 0; y < testCase.Size; y++ {
-					delete(expectedValues, values[x][y])
+					delete(expectedValues, values.Get(x, y))
 				}
 			}
 

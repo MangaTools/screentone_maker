@@ -1,19 +1,20 @@
 package algo
 
-import "math"
-
 type Dot struct {
-	PixelThresholdPoints PixelMatrix
+	PixelThresholdPoints Matrix[byte]
 	Size                 int
 }
 
-func NewDot(size int, isAnti bool) *Dot {
-	matrix := NewPixelMatrix(size)
-	if isAnti {
-		matrix.Change(func(previous byte, x, y int) byte {
-			return byte(math.Max(float64(maxPixelValue-previous) , 1))
-		})
+func NewDot(size int, inverted bool, globalMin, globalMax byte) *Dot {
+	currentMin := max(globalMin, centerValue)
+	currentMax := min(globalMax, maxPixelValue)
+	if inverted {
+		currentMin = max(globalMin, 0)
+		currentMax = min(globalMax, centerValue-1)
 	}
+
+	matrix := NewDotPixelMatrix(size, inverted, currentMin, currentMax)
+
 	return &Dot{
 		PixelThresholdPoints: matrix,
 		Size:                 size,
@@ -26,12 +27,3 @@ func (d *Dot) IsPixelBlack(x, y int, grayColor byte) bool {
 
 	return grayColor < value
 }
-
-func lerp(a, b, t float64) float64 {
-	return a + t*(b-a)
-}
-
-const (
-	maxPixelValue = 255
-	centerValue   = 128
-)

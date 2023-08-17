@@ -22,7 +22,16 @@ var acceptedImageExtensions = map[string]bool{
 }
 
 func RunExecution(settings ExecutionSettings) error {
-	cluster := algo.NewDotCluster(int(settings.ClusterSize), int(settings.DotSize))
+	clusterSettings := algo.ClusterSettings{
+		Size: int(settings.ClusterSize),
+		DotSettings: algo.DotSettings{
+			MinValue: byte(settings.Black),
+			MaxValue: byte(settings.White),
+			Size:     int(settings.DotSize),
+		},
+	}
+
+	cluster := algo.NewDotCluster(clusterSettings)
 	imagePaths, err := getImagesPaths(settings.InputPath)
 	if err != nil {
 		return err
