@@ -47,15 +47,15 @@ func RunExecution(settings ExecutionSettings) error {
 	}
 
 	imageChan := make(chan string)
+	bar := progressbar.Default(int64(len(imagePaths)), "Загрузка и обработка...")
 
 	doneWaitGroup := &sync.WaitGroup{}
 
 	for i := 0; i < int(settings.Threads); i++ {
 		doneWaitGroup.Add(1)
-		go worker(imageChan, doneWaitGroup, cluster, settings.OutPath)
+		go worker(bar, imageChan, doneWaitGroup, cluster, settings.OutPath)
 	}
 
-	bar := progressbar.Default(int64(len(imagePaths)), "Загрузка и обработка...")
 	for _, image := range imagePaths {
 		imageChan <- image
 		bar.Add(1)
@@ -71,11 +71,12 @@ func RunExecution(settings ExecutionSettings) error {
 	return nil
 }
 
-func worker(imagePathChan <-chan string, waitGroup *sync.WaitGroup, cluster *algo.DotCluster, outPath string) {
+func worker(bar *progressbar.ProgressBar, imagePathChan <-chan string, waitGroup *sync.WaitGroup, cluster *algo.DotCluster, outPath string) {
 	for imagePath := range imagePathChan {
 		executeOnFile(imagePath, outPath, cluster)
 	}
 
+	bar.Add(1)
 	waitGroup.Done()
 }
 
