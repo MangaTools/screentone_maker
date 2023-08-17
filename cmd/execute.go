@@ -24,7 +24,7 @@ var executeSettings = executor.ExecutionSettings{}
 func init() {
 	execute.Flags().UintVarP(&executeSettings.DotSize, "dot_size", "d", 5,
 		"Максимальный размер точки в пикселях. Значение должно быть в отрезке [2;100]")
-	execute.Flags().UintVarP(&executeSettings.ClusterSize, "cluster_size", "c", 4,
+	execute.Flags().UintVarP(&executeSettings.ClusterSize, "cluster_size", "c", 0,
 		"Размер матрицы из точек(точки не равно пиксели). Необходимо для dithering. Выберите одно из значений: 0(выключено), 2, 4, 8, 16.")
 	execute.Flags().UintVarP(&executeSettings.Threads, "threads", "t", uint(runtime.NumCPU()),
 		"Количество одновременно обрабатываемых изображений. По умолчанию равно количеству логических ядер процессора.")
