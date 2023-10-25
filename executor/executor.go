@@ -1,18 +1,20 @@
 package executor
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/color"
 	_ "image/jpeg"
 	"image/png"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/schollz/progressbar/v3"
 	"github.com/shadream/screentone_maker/algo"
+	"github.com/sourcegraph/conc/pool"
 )
 
 var acceptedImageExtensions = map[string]bool{
@@ -21,7 +23,12 @@ var acceptedImageExtensions = map[string]bool{
 	".jpeg": true,
 }
 
-func RunExecution(settings ExecutionSettings) error {
+type Executor struct {
+	cluster  *algo.DotCluster
+	settings ExecutionSettings
+}
+
+func NewExecutor(settings ExecutionSettings) *Executor {
 	clusterSettings := algo.ClusterSettings{
 		Size: int(settings.ClusterSize),
 		DotSettings: algo.DotSettings{
@@ -32,99 +39,108 @@ func RunExecution(settings ExecutionSettings) error {
 	}
 
 	cluster := algo.NewDotCluster(clusterSettings)
-	imagePaths, err := getImagesPaths(settings.InputPath)
+
+	return &Executor{
+		cluster:  cluster,
+		settings: settings,
+	}
+}
+
+func (e *Executor) ExecuteFolder(inputFolder, outputFolder string, recursive bool) error {
+	inputFolder, err := filepath.Abs(inputFolder)
 	if err != nil {
-		return err
+		return fmt.Errorf("Невозможно получить полный путь входной папки: %w", err)
 	}
 
-	if settings.OutPath == "" {
-		settings.OutPath = settings.InputPath
-	}
-
-	err = os.MkdirAll(settings.OutPath, 0o755)
+	images, err := getImagesPaths(inputFolder, acceptedImageExtensions, recursive)
 	if err != nil {
-		return fmt.Errorf("невозможно создать папку с результатом: %w", err)
+		return fmt.Errorf("Невозможно получить пути до изображений: %w", err)
 	}
 
-	imageChan := make(chan string)
-	bar := progressbar.Default(int64(len(imagePaths)), "Загрузка и обработка...")
-
-	doneWaitGroup := &sync.WaitGroup{}
-
-	for i := 0; i < int(settings.Threads); i++ {
-		doneWaitGroup.Add(1)
-		go worker(bar, imageChan, doneWaitGroup, cluster, settings.OutPath)
+	outputFolder, err = filepath.Abs(outputFolder)
+	if err != nil {
+		return fmt.Errorf("Невозможно получить полный путь выходной папки: %w", err)
 	}
 
-	for _, image := range imagePaths {
-		imageChan <- image
-		bar.Add(1)
+	items := len(images)
+
+	wgPool := pool.New().WithMaxGoroutines(int(e.settings.Threads))
+	bar := progressbar.Default(int64(items), "Загрузка и обработка...")
+
+	for _, imageFile := range images {
+		imageInputPath := filepath.Join(inputFolder, imageFile)
+		imageOutputPath := filepath.Join(outputFolder, imageFile)
+		err := os.MkdirAll(filepath.Dir(imageOutputPath), 0o755)
+		if err != nil {
+			return fmt.Errorf("Невозможно создать выходную папку %s: %w", filepath.Dir(imageOutputPath), err)
+		}
+
+		wgPool.Go(func() {
+			err = e.ExecuteFile(imageInputPath, imageOutputPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Невозможно обработать файл %s: %s", imageInputPath, err.Error())
+			}
+
+			bar.Add(1)
+		})
 	}
 
-	bar.Close()
-	close(imageChan)
-
-	doneWaitGroup.Wait()
-
-	fmt.Println("Готово!")
+	wgPool.Wait()
 
 	return nil
 }
 
-func worker(bar *progressbar.ProgressBar, imagePathChan <-chan string, waitGroup *sync.WaitGroup, cluster *algo.DotCluster, outPath string) {
-	for imagePath := range imagePathChan {
-		executeOnFile(imagePath, outPath, cluster)
+func (e *Executor) ExecuteFile(inputFilePath, outputFilePath string) error {
+	input, err := os.ReadFile(inputFilePath)
+	if err != nil {
+		return fmt.Errorf("Невозможно прочитать файл %s: %w", inputFilePath, err)
 	}
 
-	bar.Add(1)
-	waitGroup.Done()
+	resultData, err := e.Execute(bytes.NewBuffer(input))
+	if err != nil {
+		return fmt.Errorf("Попытка обработки файла %s: %w", inputFilePath, err)
+	}
+
+	if err := os.WriteFile(outputFilePath, resultData, 0o755); err != nil {
+		return fmt.Errorf("Запись обработанного файла %s в %s: %w", inputFilePath, outputFilePath, err)
+	}
+
+	return nil
 }
 
-func executeOnFile(imagePath string, outPath string, cluster *algo.DotCluster) {
-	parsedImage, err := readImageToStruct(imagePath)
+func (e *Executor) Execute(input io.Reader) ([]byte, error) {
+	parsedImage, _, err := image.Decode(input)
 	if err != nil {
-		fmt.Println(err)
-
-		return
+		return nil, fmt.Errorf("Невозможно декодировать входные данные: %w", err)
 	}
+
 	imageSize := parsedImage.Bounds().Max
 
 	resultImage := image.NewGray(image.Rect(0, 0, imageSize.X, imageSize.Y))
 	grayColorModel := color.GrayModel
 
-	for x := 0; x < imageSize.X; x++ {
-		for y := 0; y < imageSize.Y; y++ {
+	for y := 0; y < imageSize.Y; y++ {
+		lineIndex := y * imageSize.X
+		for x := 0; x < imageSize.X; x++ {
 			grayColor := grayColorModel.Convert(parsedImage.At(x, y)).(color.Gray)
 
-			isBlack := cluster.IsPixelBlack(x, y, grayColor.Y)
+			isBlack := e.cluster.IsPixelBlack(x, y, grayColor.Y)
 			var resultColor byte
 			if !isBlack {
 				resultColor = 255
 			}
 
-			resultImage.SetGray(x, y, color.Gray{Y: resultColor})
+			index := lineIndex + x
+			resultImage.Pix[index] = resultColor
 		}
 	}
 
-	filename := strings.TrimSuffix(filepath.Base(imagePath), filepath.Ext(imagePath))
-	filename += ".png"
-
-	resultImagePath := filepath.Join(outPath, filename)
-
-	resultFile, err := os.OpenFile(resultImagePath, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0o755)
-	if err != nil {
-		fmt.Printf("Невозможно создать файл %s: %s\n", filepath.Base(imagePath), err)
-
-		return
+	result := bytes.Buffer{}
+	if err := png.Encode(&result, resultImage); err != nil {
+		return nil, fmt.Errorf("Невозможно закодировать итоговое изображение: %w", err)
 	}
-	defer resultFile.Close()
 
-	err = png.Encode(resultFile, resultImage)
-	if err != nil {
-		fmt.Printf("Невозможно закодировать файл %s: %s\n", filepath.Base(imagePath), err)
-
-		return
-	}
+	return result.Bytes(), nil
 }
 
 func readImageToStruct(imagePath string) (image.Image, error) {
@@ -142,26 +158,39 @@ func readImageToStruct(imagePath string) (image.Image, error) {
 	return parsedImage, nil
 }
 
-func getImagesPaths(folder string) ([]string, error) {
-	files, err := os.ReadDir(folder)
-	if err != nil {
-		return nil, fmt.Errorf("Невозможно прочитать директорию: %w", err)
-	}
+func getImagesPaths(folder string, extensions map[string]bool, recursive bool) ([]string, error) {
+	dirs := []string{folder}
 
 	result := make([]string, 0)
 
-	for _, file := range files {
-		if file.IsDir() {
-			continue
+	folderCut := folder + string(filepath.Separator)
+
+	for len(dirs) != 0 {
+		currentFolder := dirs[0]
+
+		files, err := os.ReadDir(currentFolder)
+		if err != nil {
+			return nil, fmt.Errorf("Невозможно прочитать директорию: %w", err)
 		}
 
-		filePath := filepath.Join(folder, file.Name())
-		fileExt := filepath.Ext(filePath)
-		if _, ok := acceptedImageExtensions[fileExt]; !ok {
-			continue
-		}
+		dirs = dirs[1:]
 
-		result = append(result, filePath)
+		for _, file := range files {
+			if file.IsDir() {
+				dirs = append(dirs, filepath.Join(currentFolder, file.Name()))
+
+				continue
+			}
+
+			filePath := filepath.Join(currentFolder, file.Name())
+			fileExt := filepath.Ext(filePath)
+			if _, ok := acceptedImageExtensions[fileExt]; !ok {
+				continue
+			}
+
+			relativePath, _ := strings.CutPrefix(filePath, folderCut)
+			result = append(result, relativePath)
+		}
 	}
 
 	return result, nil
