@@ -12,7 +12,7 @@ var root = &cobra.Command{
 func init() {
 	root.DisableSuggestions = true
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(execute)
+	root.AddCommand(executeCmd)
 }
 
 func Execute() {
