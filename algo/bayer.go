@@ -5,7 +5,7 @@ import (
 	"sort"
 )
 
-func bayerOrderMatrix(clusterSize int) Matrix[uint] {
+func bayerOrderMatrix(clusterSize int) SquareMatrix[uint] {
 	current := bayer2x2
 	for clusterSize > len(current) {
 		current = expandBayerDitherMatrix(current)
@@ -15,7 +15,7 @@ func bayerOrderMatrix(clusterSize int) Matrix[uint] {
 }
 
 // use bayer values to count from smallest to biggest
-func orderMatrix(matrix [][]float64) Matrix[uint] {
+func orderMatrix(matrix [][]float64) SquareMatrix[uint] {
 	points := toPoint2DValueArray[float64](matrix)
 	sort.Slice(points, func(i, j int) bool {
 		return points[i].Value < points[j].Value

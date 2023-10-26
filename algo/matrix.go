@@ -5,29 +5,29 @@ import (
 	"sort"
 )
 
-type Matrix[T any] struct {
+type SquareMatrix[T any] struct {
 	Size   int
 	Matrix []T
 }
 
-func (pm *Matrix[T]) Get(x, y int) T {
+func (pm *SquareMatrix[T]) Get(x, y int) T {
 	return pm.Matrix[pm.getIndex(x, y)]
 }
 
-func (pm *Matrix[T]) Set(x, y int, value T) {
+func (pm *SquareMatrix[T]) Set(x, y int, value T) {
 	index := pm.getIndex(x, y)
 	pm.Matrix[index] = value
 }
 
-func (pm *Matrix[T]) getIndex(x, y int) int {
+func (pm *SquareMatrix[T]) getIndex(x, y int) int {
 	return x + (y * pm.Size)
 }
 
-func (pm *Matrix[T]) getPosition(index int) (int, int) {
+func (pm *SquareMatrix[T]) getPosition(index int) (int, int) {
 	return index % pm.Size, index / pm.Size
 }
 
-func (pm *Matrix[T]) Change(chageFunc func(previous T, x, y int) T) {
+func (pm *SquareMatrix[T]) Change(chageFunc func(previous T, x, y int) T) {
 	for x := 0; x < pm.Size; x++ {
 		for y := 0; y < pm.Size; y++ {
 			index := pm.getIndex(x, y)
@@ -36,8 +36,8 @@ func (pm *Matrix[T]) Change(chageFunc func(previous T, x, y int) T) {
 	}
 }
 
-func newEmptyPixelMatrix[T any](size int) Matrix[T] {
-	matrix := Matrix[T]{
+func newEmptyPixelMatrix[T any](size int) SquareMatrix[T] {
+	matrix := SquareMatrix[T]{
 		Size:   size,
 		Matrix: make([]T, size*size),
 	}
@@ -45,7 +45,7 @@ func newEmptyPixelMatrix[T any](size int) Matrix[T] {
 	return matrix
 }
 
-func NewMatrixFrom2DSlices[T any](values [][]T) Matrix[T] {
+func NewMatrixFrom2DSlices[T any](values [][]T) SquareMatrix[T] {
 	size := len(values)
 
 	matrix := newEmptyPixelMatrix[T](size)
@@ -59,7 +59,7 @@ func NewMatrixFrom2DSlices[T any](values [][]T) Matrix[T] {
 	return matrix
 }
 
-func NewMatrixWithSetupFunc[T any](size int, setupFunc func(x, y int) T) Matrix[T] {
+func NewMatrixWithSetupFunc[T any](size int, setupFunc func(x, y int) T) SquareMatrix[T] {
 	matrix := newEmptyPixelMatrix[T](size)
 
 	for x := 0; x < size; x++ {
@@ -71,7 +71,7 @@ func NewMatrixWithSetupFunc[T any](size int, setupFunc func(x, y int) T) Matrix[
 	return matrix
 }
 
-func NewDotPixelMatrix(size int, inverted bool, min, max byte) Matrix[byte] {
+func NewDotPixelMatrix(size int, inverted bool, min, max byte) SquareMatrix[byte] {
 	points := generateDotPoints(size)
 	matrix := newEmptyPixelMatrix[byte](size)
 
@@ -91,7 +91,7 @@ func sortPoints(points []PointValue2D[int, float64], inverted bool) {
 }
 
 // dotMatrixEqualDistribution sets values in matrix one by one by step.
-func equalDistributionValues(points []PointValue2D[int, float64], matrix *Matrix[byte], minValue, maxValue byte) {
+func equalDistributionValues(points []PointValue2D[int, float64], matrix *SquareMatrix[byte], minValue, maxValue byte) {
 	// NOTE(ShaDream): example: min = 1, max = 3. points are 2. first point = 1, second point = 3. step is equal 2. (3-1)/(2-x) = 2, x is 1.
 	stepValue := float64(maxValue-minValue) / float64(len(points)-1)
 
@@ -154,4 +154,26 @@ func getMaxDistance(point Point2D[float64], size int) float64 {
 	}
 
 	return max
+}
+
+func ConcatMatricies[T any](size int, matricies []SquareMatrix[T]) SquareMatrix[T] {
+	matrixSize := matricies[0].Size
+	resultMatrixSize := matrixSize * size
+	resultMatrix := newEmptyPixelMatrix[T](resultMatrixSize)
+
+	for y := 0; y < resultMatrixSize; y++ {
+		matrixY := y / matrixSize
+		insideY := y % matrixSize
+		for x := 0; x < resultMatrixSize; x++ {
+			matrixX := x / matrixSize
+			matrixIndex := matrixY*size + matrixX
+
+			insideX := x % matrixSize
+
+			value := matricies[matrixIndex].Get(insideX, insideY)
+			resultMatrix.Set(x, y, value)
+		}
+	}
+
+	return resultMatrix
 }

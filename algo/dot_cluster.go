@@ -1,7 +1,7 @@
 package algo
 
 type DotCluster struct {
-	dots Matrix[Dot]
+	dots SquareMatrix[Dot]
 
 	clusterSize int
 	dotSize     int
@@ -57,4 +57,17 @@ func (d *DotCluster) IsPixelBlack(x, y int, color byte) bool {
 	dot := d.dots.Get(clusterPoint.X, clusterPoint.Y)
 
 	return dot.IsPixelBlack(dotPoint.X, dotPoint.Y, color)
+}
+
+func CreateThresholdMatrix(clusterSettings ClusterSettings) SquareMatrix[byte] {
+	cluster := NewDotCluster(clusterSettings)
+
+	matricies := []SquareMatrix[byte]{}
+	for y := 0; y < cluster.clusterSize; y++ {
+		for x := 0; x < cluster.clusterSize; x++ {
+			matricies = append(matricies, cluster.dots.Get(x, y).PixelThresholdPoints)
+		}
+	}
+
+	return ConcatMatricies[byte](cluster.clusterSize, matricies)
 }

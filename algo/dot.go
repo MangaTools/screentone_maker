@@ -1,8 +1,8 @@
 package algo
 
 type Dot struct {
-	PixelThresholdPoints Matrix[byte]
-	Size                 int
+	PixelThresholdPoints SquareMatrix[byte]
+	min, max             byte
 }
 
 func NewDot(size int, inverted bool, globalMin, globalMax byte) *Dot {
@@ -17,7 +17,8 @@ func NewDot(size int, inverted bool, globalMin, globalMax byte) *Dot {
 
 	return &Dot{
 		PixelThresholdPoints: matrix,
-		Size:                 size,
+		min:                  currentMin,
+		max:                  currentMax,
 	}
 }
 
