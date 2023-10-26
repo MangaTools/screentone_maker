@@ -1,11 +1,17 @@
 package executor_test
 
 import (
+	"bytes"
 	"image"
 	"image/color"
+	"io"
+	"os"
+	"path/filepath"
 	"runtime"
-	"sync"
 	"testing"
+
+	"github.com/shadream/screentone_maker/executor"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -13,13 +19,48 @@ const (
 	maxY = 1200
 
 	value = 128
+
+	testDataPath     = "./testdata"
+	rainbowImageName = "rainbow.png"
 )
 
-var colorValue = color.Gray{
-	Y: value,
+var (
+	colorValue = color.Gray{
+		Y: value,
+	}
+
+	defaultExecutorSettings = executor.ExecutionSettings{
+		DotSize: 6,
+		White:   255,
+		Threads: uint(runtime.NumCPU()),
+	}
+)
+
+func getRainbowData(t testing.TB) []byte {
+	t.Helper()
+
+	rainbowImagePath := filepath.Join(testDataPath, rainbowImageName)
+
+	file, err := os.Open(rainbowImagePath)
+	require.NoError(t, err)
+	defer file.Close()
+
+	data, err := io.ReadAll(file)
+	require.NoError(t, err)
+
+	return data
 }
 
-func BenchmarkOneThread(b *testing.B) {
+func BenchmarkExecutorProcessImage(b *testing.B) {
+	rainbowData := getRainbowData(b)
+	executor := executor.NewExecutor(defaultExecutorSettings)
+
+	for i := 0; i < b.N; i++ {
+		executor.Execute(bytes.NewReader(rainbowData))
+	}
+}
+
+func BenchmarkSetByFunc(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		resultImage := image.NewGray(image.Rect(0, 0, maxX, maxY))
 
@@ -28,34 +69,6 @@ func BenchmarkOneThread(b *testing.B) {
 				resultImage.Set(x, y, colorValue)
 			}
 		}
-	}
-}
-
-func BenchmarkMultipleThreads(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		resultImage := image.NewGray(image.Rect(0, 0, maxX, maxY))
-
-		rowChan := make(chan int, runtime.NumCPU())
-		wg := sync.WaitGroup{}
-
-		for i := 0; i < runtime.NumCPU(); i++ {
-			go func() {
-				for y := range rowChan {
-					for x := 0; x < maxX; x++ {
-						resultImage.Set(x, y, colorValue)
-					}
-					wg.Done()
-				}
-			}()
-		}
-
-		for y := 0; y < maxY; y++ {
-			wg.Add(1)
-			rowChan <- y
-		}
-
-		close(rowChan)
-		wg.Wait()
 	}
 }
 
@@ -70,38 +83,5 @@ func BenchmarkRawSet(b *testing.B) {
 				resultImage.Pix[index] = value
 			}
 		}
-	}
-}
-
-func BenchmarkRawSetMultipleThreads(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		resultImage := image.NewGray(image.Rect(0, 0, maxX, maxY))
-
-		rowChan := make(chan int, runtime.NumCPU())
-		wg := sync.WaitGroup{}
-
-		for i := 0; i < runtime.NumCPU(); i++ {
-			go func() {
-				for y := range rowChan {
-					lineIndex := y * maxX
-					for x := 0; x < maxX; x++ {
-						index := lineIndex + x
-						resultImage.Pix[index] = value
-					}
-
-					wg.Done()
-				}
-			}()
-		}
-
-		for i := 0; i < b.N; i++ {
-			for y := 0; y < maxY; y++ {
-				wg.Add(1)
-				rowChan <- y
-			}
-		}
-
-		close(rowChan)
-		wg.Wait()
 	}
 }
