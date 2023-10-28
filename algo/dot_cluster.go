@@ -1,60 +1,41 @@
 package algo
 
-type DotCluster struct {
-	dots Matrix[Dot]
+const clusterSize = 2
 
-	clusterSize int
-	dotSize     int
+func generateDotCluster(dotSettings DotSettings) []SquareMatrix[byte] {
+	regularDot := newDotBuilder(dotSettings.Size, false)
+	invertedDot := newDotBuilder(dotSettings.Size, true)
+
+	dotMatricies := make([]SquareMatrix[byte], 0, dotSettings.Size*dotSettings.Size)
+
+	maxSettings := dotSettings.MaxValue
+	minSettings := dotSettings.MinValue
+
+	centralPoint := min(minSettings+(maxSettings-minSettings)/2+1, maxSettings)
+
+	for y := 0; y < clusterSize; y++ {
+		for x := 0; x < clusterSize; x++ {
+			isInverted := (x+y)%2 != 0
+			if isInverted {
+				maxValue := max((centralPoint - 1), minSettings)
+				minValue := minSettings
+
+				dotMatricies = append(dotMatricies, invertedDot.generateMatrix(minValue, maxValue))
+			} else {
+				maxValue := maxSettings
+				minValue := centralPoint
+
+				dotMatricies = append(dotMatricies, regularDot.generateMatrix(minValue, maxValue))
+			}
+
+		}
+	}
+
+	return dotMatricies
 }
 
-func NewDotCluster(clusterSettings ClusterSettings) *DotCluster {
-	// NOTE(ShaDream) min size is 2, but 0 turns off bayer dither across dots
-	useBayer := true
-	if clusterSettings.Size == 0 {
-		clusterSettings.Size = 2
-		useBayer = false
-	}
+func CreateThresholdMatrix(dotSettings DotSettings) SquareMatrix[byte] {
+	cluster := generateDotCluster(dotSettings)
 
-	offsetMatrix := newEmptyPixelMatrix[uint](clusterSettings.Size)
-	if useBayer {
-		offsetMatrix = bayerOrderMatrix(clusterSettings.Size)
-	}
-
-	setupDotFunc := func(x, y int) Dot {
-		maxValue := max(clusterSettings.DotSettings.MaxValue-byte(offsetMatrix.Get(x, y)), clusterSettings.DotSettings.MinValue)
-		dot := *NewDot(clusterSettings.DotSettings.Size, (x+y)%2 != 0, clusterSettings.DotSettings.MinValue, maxValue)
-
-		return dot
-	}
-
-	dotMatrix := NewMatrixWithSetupFunc[Dot](clusterSettings.Size, setupDotFunc)
-
-	cluster := &DotCluster{
-		dots:        dotMatrix,
-		clusterSize: clusterSettings.Size,
-		dotSize:     clusterSettings.DotSettings.Size,
-	}
-
-	return cluster
-}
-
-func (d *DotCluster) IsPixelBlack(x, y int, color byte) bool {
-	clusterPixelSize := d.dotSize * d.clusterSize
-
-	x = x % clusterPixelSize
-	y = y % clusterPixelSize
-
-	clusterPoint := Point2D[int]{
-		X: x / d.dotSize,
-		Y: y / d.dotSize,
-	}
-
-	dotPoint := Point2D[int]{
-		X: x % d.dotSize,
-		Y: y % d.dotSize,
-	}
-
-	dot := d.dots.Get(clusterPoint.X, clusterPoint.Y)
-
-	return dot.IsPixelBlack(dotPoint.X, dotPoint.Y, color)
+	return concatMatricies[byte](clusterSize, cluster)
 }

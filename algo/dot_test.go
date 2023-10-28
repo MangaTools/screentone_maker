@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestEqualDistribution(t *testing.T) {
+func TestDotBuilderEqualDistribution(t *testing.T) {
 	testCases := []struct {
 		Name string
 		Size int
@@ -33,7 +33,7 @@ func TestEqualDistribution(t *testing.T) {
 		t.Run(testCase.Name, func(t *testing.T) {
 			maxValue := byte(testCase.Size * testCase.Size)
 
-			values := NewDotPixelMatrix(testCase.Size, false, 0, maxValue-1)
+			values := newDotBuilder(testCase.Size, false).generateMatrix(0, maxValue-1)
 
 			expectedValues := make(map[byte]struct{})
 			for i := byte(0); i < maxValue; i++ {

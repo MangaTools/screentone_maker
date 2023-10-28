@@ -24,25 +24,22 @@ var acceptedImageExtensions = map[string]bool{
 }
 
 type Executor struct {
-	cluster  *algo.DotCluster
-	settings ExecutionSettings
+	thresholdMatrix algo.SquareMatrix[byte]
+	settings        ExecutionSettings
 }
 
 func NewExecutor(settings ExecutionSettings) *Executor {
-	clusterSettings := algo.ClusterSettings{
-		Size: int(settings.ClusterSize),
-		DotSettings: algo.DotSettings{
-			MinValue: byte(settings.Black),
-			MaxValue: byte(settings.White),
-			Size:     int(settings.DotSize),
-		},
+	dotSettings := algo.DotSettings{
+		MinValue: byte(settings.Black),
+		MaxValue: byte(settings.White),
+		Size:     int(settings.DotSize),
 	}
 
-	cluster := algo.NewDotCluster(clusterSettings)
+	thresholdMatrix := algo.CreateThresholdMatrix(dotSettings)
 
 	return &Executor{
-		cluster:  cluster,
-		settings: settings,
+		thresholdMatrix: thresholdMatrix,
+		settings:        settings,
 	}
 }
 
@@ -121,10 +118,15 @@ func (e *Executor) Execute(input io.Reader) ([]byte, error) {
 
 	for y := 0; y < imageSize.Y; y++ {
 		lineIndex := y * imageSize.X
+
+		matrixYBaseIndex := (y % e.thresholdMatrix.Size) * e.thresholdMatrix.Size
 		for x := 0; x < imageSize.X; x++ {
 			grayColor := grayColorModel.Convert(parsedImage.At(x, y)).(color.Gray)
 
-			isBlack := e.cluster.IsPixelBlack(x, y, grayColor.Y)
+			matrixX := x % e.thresholdMatrix.Size
+			matrixIndex := matrixYBaseIndex + matrixX
+
+			isBlack := grayColor.Y < e.thresholdMatrix.Matrix[matrixIndex]
 			var resultColor byte
 			if !isBlack {
 				resultColor = 255
