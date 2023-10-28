@@ -51,8 +51,6 @@ func init() {
 
 	executeCmd.PersistentFlags().UintVarP(&executeSettings.DotSize, "dot_size", "d", 5,
 		"Максимальный размер точки в пикселях. Значение должно быть в отрезке [2;100]")
-	executeCmd.PersistentFlags().UintVarP(&executeSettings.ClusterSize, "cluster_size", "c", 0,
-		"Размер матрицы из точек(точки не равно пиксели). Необходимо для dithering. Выберите одно из значений: 0(выключено), 2, 4, 8, 16.")
 	executeCmd.PersistentFlags().UintVarP(&executeSettings.Black, "black", "b", 1,
 		"Максимальный цвет пикселя, при котором любой пиксель будет черным.")
 	executeCmd.PersistentFlags().UintVarP(&executeSettings.White, "white", "w", 255,

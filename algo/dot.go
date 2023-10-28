@@ -1,30 +1,32 @@
 package algo
 
-type Dot struct {
-	PixelThresholdPoints SquareMatrix[byte]
-	min, max             byte
+import "math"
+
+type DotMatrixBuilder struct {
+	Size                int
+	PointThresholdOrder []Point2D[int]
 }
 
-func NewDot(size int, inverted bool, globalMin, globalMax byte) *Dot {
-	currentMin := max(globalMin, (globalMax-globalMin)/2+1)
-	currentMax := min(globalMax, maxPixelValue)
-	if inverted {
-		currentMin = max(globalMin, 0)
-		currentMax = min(globalMax, (globalMax-globalMin)/2)
-	}
+func newDotBuilder(size int, inverted bool) *DotMatrixBuilder {
+	order := generateCirclePointOrder(size, inverted)
 
-	matrix := NewDotPixelMatrix(size, inverted, currentMin, currentMax)
-
-	return &Dot{
-		PixelThresholdPoints: matrix,
-		min:                  currentMin,
-		max:                  currentMax,
+	return &DotMatrixBuilder{
+		Size:                size,
+		PointThresholdOrder: order,
 	}
 }
 
-// IsPixelBlack returns true if black and false when white.
-func (d *Dot) IsPixelBlack(x, y int, grayColor byte) bool {
-	value := d.PixelThresholdPoints.Get(x, y)
+func (d DotMatrixBuilder) generateMatrix(min, max byte) SquareMatrix[byte] {
+	resultMatrix := newEmptyPixelMatrix[byte](d.Size)
 
-	return grayColor < value
+	// NOTE(ShaDream): example: min = 1, max = 3. points are 2. first point = 1, second point = 3. step is equal 2. (3-1)/(2-x) = 2, x is 1.
+	stepValue := float64(max-min) / float64(len(d.PointThresholdOrder)-1)
+
+	for i, point := range d.PointThresholdOrder {
+		newValue := math.Round(float64(max) - (stepValue * float64(i)))
+
+		resultMatrix.set(point.X, point.Y, byte(newValue))
+	}
+
+	return resultMatrix
 }

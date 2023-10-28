@@ -29,16 +29,13 @@ type Executor struct {
 }
 
 func NewExecutor(settings ExecutionSettings) *Executor {
-	clusterSettings := algo.ClusterSettings{
-		Size: int(settings.ClusterSize),
-		DotSettings: algo.DotSettings{
-			MinValue: byte(settings.Black),
-			MaxValue: byte(settings.White),
-			Size:     int(settings.DotSize),
-		},
+	dotSettings := algo.DotSettings{
+		MinValue: byte(settings.Black),
+		MaxValue: byte(settings.White),
+		Size:     int(settings.DotSize),
 	}
 
-	thresholdMatrix := algo.CreateThresholdMatrix(clusterSettings)
+	thresholdMatrix := algo.CreateThresholdMatrix(dotSettings)
 
 	return &Executor{
 		thresholdMatrix: thresholdMatrix,
@@ -129,7 +126,7 @@ func (e *Executor) Execute(input io.Reader) ([]byte, error) {
 			matrixX := x % e.thresholdMatrix.Size
 			matrixIndex := matrixYBaseIndex + matrixX
 
-			isBlack := e.thresholdMatrix.Matrix[matrixIndex] < grayColor.Y
+			isBlack := grayColor.Y < e.thresholdMatrix.Matrix[matrixIndex]
 			var resultColor byte
 			if !isBlack {
 				resultColor = 255
