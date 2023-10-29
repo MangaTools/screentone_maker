@@ -11,7 +11,7 @@ import (
 
 var executeCmd = &cobra.Command{
 	Use:   "execute",
-	Short: "Данная команда запускает процесс выполнения наложение скринтона на изображение в указанной папке.",
+	Short: "This command starts the process of overlaying a screentone on the images in the specified folder.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := executeSettings.Validate(); err != nil {
 			return err
@@ -25,7 +25,7 @@ var executeCmd = &cobra.Command{
 
 var executePipeCmd = &cobra.Command{
 	Use:   "pipe",
-	Short: "Данная команда запускает обработку одного файла из stdin потока и выводит в stdout.",
+	Short: "This command starts processing of overlaying a screentone of a single file from the stdin stream and outputs to stdout stream.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := executeSettings.ValidatePipe(); err != nil {
 			return err
@@ -50,19 +50,19 @@ func init() {
 	executeCmd.AddCommand(executePipeCmd)
 
 	executeCmd.PersistentFlags().UintVarP(&executeSettings.DotSize, "dot_size", "d", 5,
-		"Максимальный размер точки в пикселях. Значение должно быть в отрезке [2;100]")
+		"Max dot size in pixels. Value must be in range [2;100]. This flag is responsible for how big your screentone will be.")
 	executeCmd.PersistentFlags().UintVarP(&executeSettings.Black, "black", "b", 1,
-		"Максимальный цвет пикселя, при котором любой пиксель будет черным.")
+		"The maximum pixel color at which any pixel will be black. Flag only includes values less than the specified value.")
 	executeCmd.PersistentFlags().UintVarP(&executeSettings.White, "white", "w", 255,
-		"Минимальный цвет пикселя, при котором любой пиксель будет белым.")
+		"The minimum pixel color at which any pixel will be white. Flag includes values greater or equal than the specified value.")
 
 	executeCmd.Flags().UintVarP(&executeSettings.Threads, "threads", "t", uint(runtime.NumCPU()),
-		"Количество одновременно обрабатываемых изображений. По умолчанию равно количеству логических ядер процессора.")
+		"Number of simultaneously processed images. The default value is equal to the number of logical processor cores.")
 	executeCmd.Flags().StringVarP(&executeSettings.InputPath, "input", "i", "",
-		"Путь до папки с изображениями.")
+		"The path to the folder with the images.")
 	executeCmd.Flags().BoolVarP(&executeSettings.Recursive, "recursive", "r", false,
-		"Вложенный поиск файлов.")
+		"Recursive image search.")
 	executeCmd.Flags().StringVarP(&executeSettings.OutPath, "out", "o", "",
-		"Путь до папки с итоговыми изображениями (если папки не существует, то она создастся).\n"+
-			"Если не указано, то записывается в input папку. На выходе будут .png файлы. Если в папке уже есть файлы с таким же названием, то файлы перезаписываются.")
+		`Path to the folder with final images (if the folder does not exist, it will be created).
+	If not specified, it is written to the input folder. The output will be .png files. If there are already files with the same name in the folder, the files are overwritten.`)
 }

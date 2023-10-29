@@ -46,36 +46,36 @@ func NewExecutor(settings ExecutionSettings) *Executor {
 func (e *Executor) ExecuteFolder(inputFolder, outputFolder string, recursive bool) error {
 	inputFolder, err := filepath.Abs(inputFolder)
 	if err != nil {
-		return fmt.Errorf("Невозможно получить полный путь входной папки: %w", err)
+		return fmt.Errorf("get absolute path of input folder: %w", err)
 	}
 
 	images, err := getImagesPaths(inputFolder, acceptedImageExtensions, recursive)
 	if err != nil {
-		return fmt.Errorf("Невозможно получить пути до изображений: %w", err)
+		return err
 	}
 
 	outputFolder, err = filepath.Abs(outputFolder)
 	if err != nil {
-		return fmt.Errorf("Невозможно получить полный путь выходной папки: %w", err)
+		return fmt.Errorf("get absolute path of output folder: %w", err)
 	}
 
 	items := len(images)
 
 	wgPool := pool.New().WithMaxGoroutines(int(e.settings.Threads))
-	bar := progressbar.Default(int64(items), "Загрузка и обработка...")
+	bar := progressbar.Default(int64(items), "Executing...")
 
 	for _, imageFile := range images {
 		imageInputPath := filepath.Join(inputFolder, imageFile)
 		imageOutputPath := filepath.Join(outputFolder, imageFile)
 		err := os.MkdirAll(filepath.Dir(imageOutputPath), 0o755)
 		if err != nil {
-			return fmt.Errorf("Невозможно создать выходную папку %s: %w", filepath.Dir(imageOutputPath), err)
+			return fmt.Errorf("create output dir \"%s\": %w", filepath.Dir(imageOutputPath), err)
 		}
 
 		wgPool.Go(func() {
 			err = e.ExecuteFile(imageInputPath, imageOutputPath)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Невозможно обработать файл %s: %s", imageInputPath, err.Error())
+				fmt.Fprintf(os.Stderr, "can not handler image \"%s\": %s", imageInputPath, err.Error())
 			}
 
 			bar.Add(1)
@@ -90,16 +90,16 @@ func (e *Executor) ExecuteFolder(inputFolder, outputFolder string, recursive boo
 func (e *Executor) ExecuteFile(inputFilePath, outputFilePath string) error {
 	input, err := os.ReadFile(inputFilePath)
 	if err != nil {
-		return fmt.Errorf("Невозможно прочитать файл %s: %w", inputFilePath, err)
+		return fmt.Errorf("read input file \"%s\": %w", inputFilePath, err)
 	}
 
 	resultData, err := e.Execute(bytes.NewBuffer(input))
 	if err != nil {
-		return fmt.Errorf("Попытка обработки файла %s: %w", inputFilePath, err)
+		return fmt.Errorf("execute file \"%s\": %w", inputFilePath, err)
 	}
 
 	if err := os.WriteFile(outputFilePath, resultData, 0o755); err != nil {
-		return fmt.Errorf("Запись обработанного файла %s в %s: %w", inputFilePath, outputFilePath, err)
+		return fmt.Errorf("write executed file \"%s\" in \"%s\": %w", inputFilePath, outputFilePath, err)
 	}
 
 	return nil
@@ -108,7 +108,7 @@ func (e *Executor) ExecuteFile(inputFilePath, outputFilePath string) error {
 func (e *Executor) Execute(input io.Reader) ([]byte, error) {
 	parsedImage, _, err := image.Decode(input)
 	if err != nil {
-		return nil, fmt.Errorf("Невозможно декодировать входные данные: %w", err)
+		return nil, fmt.Errorf("decode image input: %w", err)
 	}
 
 	imageSize := parsedImage.Bounds().Max
@@ -139,7 +139,7 @@ func (e *Executor) Execute(input io.Reader) ([]byte, error) {
 
 	result := bytes.Buffer{}
 	if err := png.Encode(&result, resultImage); err != nil {
-		return nil, fmt.Errorf("Невозможно закодировать итоговое изображение: %w", err)
+		return nil, fmt.Errorf("encode executed image: %w", err)
 	}
 
 	return result.Bytes(), nil
@@ -148,13 +148,13 @@ func (e *Executor) Execute(input io.Reader) ([]byte, error) {
 func readImageToStruct(imagePath string) (image.Image, error) {
 	imageFile, err := os.Open(imagePath)
 	if err != nil {
-		return nil, fmt.Errorf("Невозможно открыть файл %s: %w", filepath.Base(imagePath), err)
+		return nil, fmt.Errorf("open image file \"%s\": %w", filepath.Base(imagePath), err)
 	}
 	defer imageFile.Close()
 
 	parsedImage, _, err := image.Decode(imageFile)
 	if err != nil {
-		return nil, fmt.Errorf("Невозможно декодировать файл %s: %w", filepath.Base(imagePath), err)
+		return nil, fmt.Errorf("decode image file \"%s\": %w", filepath.Base(imagePath), err)
 	}
 
 	return parsedImage, nil
@@ -172,7 +172,7 @@ func getImagesPaths(folder string, extensions map[string]bool, recursive bool) (
 
 		files, err := os.ReadDir(currentFolder)
 		if err != nil {
-			return nil, fmt.Errorf("Невозможно прочитать директорию: %w", err)
+			return nil, fmt.Errorf("read dir \"%s\" to find images: %w", currentFolder, err)
 		}
 
 		dirs = dirs[1:]
