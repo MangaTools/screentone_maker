@@ -179,7 +179,9 @@ func getImagesPaths(folder string, extensions map[string]bool, recursive bool) (
 
 		for _, file := range files {
 			if file.IsDir() {
-				dirs = append(dirs, filepath.Join(currentFolder, file.Name()))
+				if recursive {
+					dirs = append(dirs, filepath.Join(currentFolder, file.Name()))
+				}
 
 				continue
 			}
