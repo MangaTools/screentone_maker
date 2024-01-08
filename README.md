@@ -1,5 +1,7 @@
 # screentone_maker
 
+**ARCHIVED. Use [MangaTools/utmanga](https://github.com/MangaTools/utmanga) instead.**
+
 CLI app to conver overlay image with dot screentone. The result is similar to the dot screentone algorithm from Clip Studio Paint.
 
 `screentone_maker [command] --help` to get help of the app and commands.
